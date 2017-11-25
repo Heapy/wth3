@@ -11,7 +11,7 @@ object App {
     @JvmStatic
     fun main(args: Array<String>) {
         val controller = Controller()
-        val boobsListeners = BoobsListeners(
+        val boobsListeners = BoobsListener(
             EventHandler(
                 Robot()
             )
@@ -30,10 +30,114 @@ object App {
     }
 }
 
+object Chrome {
+    @JvmStatic
+    fun main(args: Array<String>) {
+        val controller = Controller()
+        val boobsListeners = ChromeListener(
+                EventHandler(
+                        Robot()
+                )
+        )
+        controller.addListener(boobsListeners)
+
+        // Keep this process running until Enter is pressed
+        println("Press Enter to quit...")
+        try {
+            System.`in`.read()
+        } catch (e: IOException) {
+            e.printStackTrace()
+        }
+
+        controller.removeListener(boobsListeners)
+    }
+}
+
 sealed class BoobsEvent
 class Jump(val state: Boolean) : BoobsEvent()
 class MoveRight(val state: Boolean) : BoobsEvent()
+class Space(val state: Boolean) : BoobsEvent()
 
+
+class EventHandler(
+    private val robot: Robot
+) {
+
+    init {
+        Runtime.getRuntime().addShutdownHook(object : Thread() {
+            override fun run() {
+                println("Shutdown")
+                robot.keyRelease(KeyEvent.VK_RIGHT)
+                robot.keyRelease(KeyEvent.VK_LEFT)
+                robot.keyRelease(KeyEvent.VK_D)
+                robot.keyRelease(KeyEvent.VK_SPACE)
+            }
+        })
+    }
+    fun handle(event: BoobsEvent) {
+        when (event) {
+            
+            is Jump -> if (event.state) {
+                robot.keyPress(KeyEvent.VK_F)
+            } else {
+                robot.keyRelease(KeyEvent.VK_F)
+            }
+            
+            is MoveRight -> if (event.state) {
+                robot.keyPress(KeyEvent.VK_RIGHT)
+                robot.keyPress(KeyEvent.VK_D)
+            } else {
+                robot.keyRelease(KeyEvent.VK_RIGHT)
+                robot.keyRelease(KeyEvent.VK_D)
+            }
+
+            is Space -> if (event.state) {
+                robot.keyPress(KeyEvent.VK_SPACE)
+            } else {
+                robot.keyRelease(KeyEvent.VK_SPACE)
+            }
+        }
+    }
+
+}
+
+class BoobsListener(
+        private val handler: EventHandler
+) : Listener() {
+
+    override fun onFrame(ctrl: Controller) {
+        val frame = ctrl.frame()
+
+        val hands = frame.hands()
+
+        val left: Hand? = hands.leftmost()
+        val right: Hand? = hands.rightmost()
+
+        if (left != null) {
+            handler.handle(MoveRight(left.palmPosition().y < 180))
+        }
+
+        if (frame.id() % 8 == 0L && right != null) {
+            handler.handle(Jump(right.palmPosition().y < 170))
+        }
+    }
+}
+
+class ChromeListener(
+        private val handler: EventHandler
+) : Listener() {
+
+    override fun onFrame(ctrl: Controller) {
+        val frame = ctrl.frame()
+        val hands = frame.hands()
+
+        val left: Hand? = hands.leftmost()
+        val right: Hand? = hands.rightmost()
+
+        handler.handle(Space(left != null && left.palmPosition().y < 135))
+        handler.handle(Space(right != null && right.palmPosition().y < 135))
+    }
+}
 
 /*
 Frame id: 76673, timestamp: 1511544469983934, hands: 1, fingers: 5, tools: 0, gestures 0
@@ -66,59 +170,3 @@ Frame id: 76673, timestamp: 1511544469983934, hands: 1, fingers: 5, tools: 0, ge
       TYPE_INTERMEDIATE bone, start: (34.6586, 90.8142, 35.6682), end: (49.3103, 81.6619, 37.3581), direction: (-0.844102, 0.52727, -0.0973597)
       TYPE_DISTAL bone, start: (49.3103, 81.6619, 37.3581), end: (61.4319, 72.3393, 36.9574), direction: (-0.792405, 0.609432, 0.0261979)
 */
-class BoobsListeners(
-    private val handler: EventHandler
-) : Listener() {
-
-    override fun onFrame(ctrl: Controller) {
-        val frame = ctrl.frame()
-
-        val hands = frame.hands()
-
-        val left: Hand? = hands.leftmost()
-        val right: Hand? = hands.rightmost()
-
-        if (left != null) {
-            handler.handle(MoveRight(left.palmPosition().y < 180))
-        }
-
-        if (frame.id() % 8 == 0L && right != null) {
-            handler.handle(Jump(right.palmPosition().y < 170))
-        }
-    }
-}
-
-class EventHandler(
-    private val robot: Robot
-) {
-    init {
-        Runtime.getRuntime().addShutdownHook(object : Thread() {
-            override fun run() {
-                println("Shutdown")
-                robot.keyRelease(KeyEvent.VK_RIGHT)
-                robot.keyRelease(KeyEvent.VK_LEFT)
-                robot.keyRelease(KeyEvent.VK_D)
-            }
-        })
-    }
-
-    fun handle(event: BoobsEvent) {
-        when (event) {
-            
-            is Jump -> if (event.state) {
-                robot.keyPress(KeyEvent.VK_F)
-            } else {
-                robot.keyRelease(KeyEvent.VK_F)
-            }
-            
-            is MoveRight -> if (event.state) {
-                robot.keyPress(KeyEvent.VK_RIGHT)
-                robot.keyPress(KeyEvent.VK_D)
-            } else {
-                robot.keyRelease(KeyEvent.VK_RIGHT)
-                robot.keyRelease(KeyEvent.VK_D)
-            }
-        }
-    }
-
-}
