@@ -1,7 +1,6 @@
 package by.heap.wth3
 
 import com.leapmotion.leap.Controller
-import com.leapmotion.leap.Gesture
 import com.leapmotion.leap.Hand
 import com.leapmotion.leap.Listener
 import java.awt.Robot
@@ -34,7 +33,6 @@ object App {
 sealed class BoobsEvent
 class Jump(val state: Boolean) : BoobsEvent()
 class MoveRight(val state: Boolean) : BoobsEvent()
-class SwipeEvent(val state: Boolean) : BoobsEvent()
 
 
 /*
@@ -72,20 +70,8 @@ class BoobsListeners(
     private val handler: EventHandler
 ) : Listener() {
 
-    override fun onConnect(controller: Controller) {
-        controller.enableGesture(Gesture.Type.TYPE_SWIPE)
-    }
-
     override fun onFrame(ctrl: Controller) {
         val frame = ctrl.frame()
-
-        val swipe = frame.gestures().firstOrNull { it.type() == Gesture.Type.TYPE_SWIPE }
-
-        if (swipe != null) {
-            if (swipe.durationSeconds() > 0.1f) {
-                handler.handle(SwipeEvent(true))
-            }
-        }
 
         val hands = frame.hands()
 
@@ -96,8 +82,8 @@ class BoobsListeners(
             handler.handle(MoveRight(left.palmPosition().y < 180))
         }
 
-        if (frame.id() % 8 == 0L) {
-            handler.handle(Jump(right != null && right.palmPosition().y < 170))
+        if (frame.id() % 8 == 0L && right != null) {
+            handler.handle(Jump(right.palmPosition().y < 170))
         }
     }
 }
@@ -116,30 +102,21 @@ class EventHandler(
         })
     }
 
-    var direction = true
-
     fun handle(event: BoobsEvent) {
         when (event) {
-            is Jump -> if (event.state) robot.keyPress(KeyEvent.VK_F) else robot.keyRelease(KeyEvent.VK_F)
-            is MoveRight -> if (event.state) {
-                if (direction) {
-                    robot.keyPress(KeyEvent.VK_RIGHT)
-                    robot.keyPress(KeyEvent.VK_D)
-                } else {
-                    robot.keyPress(KeyEvent.VK_LEFT)
-                    robot.keyPress(KeyEvent.VK_D)
-                }
+            
+            is Jump -> if (event.state) {
+                robot.keyPress(KeyEvent.VK_F)
             } else {
-                if (direction) {
-                    robot.keyRelease(KeyEvent.VK_RIGHT)
-                    robot.keyRelease(KeyEvent.VK_D)
-                } else {
-                    robot.keyRelease(KeyEvent.VK_LEFT)
-                    robot.keyRelease(KeyEvent.VK_D)
-                }
+                robot.keyRelease(KeyEvent.VK_F)
             }
-            is SwipeEvent -> {
-                direction = !direction
+            
+            is MoveRight -> if (event.state) {
+                robot.keyPress(KeyEvent.VK_RIGHT)
+                robot.keyPress(KeyEvent.VK_D)
+            } else {
+                robot.keyRelease(KeyEvent.VK_RIGHT)
+                robot.keyRelease(KeyEvent.VK_D)
             }
         }
     }
