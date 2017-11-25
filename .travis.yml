@@ -4,7 +4,8 @@ jdk:
 - oraclejdk8
 
 env:
-  JAVA_OPTS="$JAVA_OPTS"
+  global:
+    - JAVA_OPTS='-Djava.library.path="./native/linux"'
 
 before_cache:
 - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock

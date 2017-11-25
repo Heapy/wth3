@@ -79,10 +79,17 @@ class BoobsListeners(
         val left: Hand? = hands.firstOrNull { it.isLeft }
         val right: Hand? = hands.firstOrNull { it.isRight }
 
-        handler.handle(MoveRight(left !== null && left.grabStrength() > 0.8))
+        if (right != null) {
+            println("${right.direction().y} ${(right.direction().y > 0.3)}")
+        }
+
+
+        if (left != null) {
+            handler.handle(MoveRight(left.direction().y < 0.4))
+        }
 
         if (frame.id() % 8 == 0L) {
-            handler.handle(Jump(right !== null && right.pinchStrength() > 0.6))
+            handler.handle(Jump(right != null && right.direction().y < 0.3))
         }
     }
 }
