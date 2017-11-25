@@ -1,6 +1,7 @@
 package by.heap.wth3
 
 import com.leapmotion.leap.Controller
+import com.leapmotion.leap.Gesture
 import com.leapmotion.leap.Hand
 import com.leapmotion.leap.Listener
 import java.awt.Robot
@@ -33,6 +34,7 @@ object App {
 sealed class BoobsEvent
 class Jump(val state: Boolean) : BoobsEvent()
 class MoveRight(val state: Boolean) : BoobsEvent()
+class SwipeEvent(val state: Boolean) : BoobsEvent()
 
 
 /*
@@ -70,26 +72,32 @@ class BoobsListeners(
     private val handler: EventHandler
 ) : Listener() {
 
+    override fun onConnect(controller: Controller) {
+        controller.enableGesture(Gesture.Type.TYPE_SWIPE)
+    }
 
     override fun onFrame(ctrl: Controller) {
         val frame = ctrl.frame()
 
-        val hands = frame.hands()
+        val swipe = frame.gestures().firstOrNull { it.type() == Gesture.Type.TYPE_SWIPE }
 
-        val left: Hand? = hands.firstOrNull { it.isLeft }
-        val right: Hand? = hands.firstOrNull { it.isRight }
-
-        if (right != null) {
-            println("${right.direction().y} ${(right.direction().y > 0.3)}")
+        if (swipe != null) {
+            if (swipe.durationSeconds() > 0.1f) {
+                handler.handle(SwipeEvent(true))
+            }
         }
 
+        val hands = frame.hands()
+
+        val left: Hand? = hands.leftmost()
+        val right: Hand? = hands.rightmost()
 
         if (left != null) {
-            handler.handle(MoveRight(left.direction().y < 0.4))
+            handler.handle(MoveRight(left.palmPosition().y < 180))
         }
 
         if (frame.id() % 8 == 0L) {
-            handler.handle(Jump(right != null && right.direction().y < 0.3))
+            handler.handle(Jump(right != null && right.palmPosition().y < 170))
         }
     }
 }
@@ -97,16 +105,43 @@ class BoobsListeners(
 class EventHandler(
     private val robot: Robot
 ) {
+    init {
+        Runtime.getRuntime().addShutdownHook(object : Thread() {
+            override fun run() {
+                println("Shutdown")
+                robot.keyRelease(KeyEvent.VK_RIGHT)
+                robot.keyRelease(KeyEvent.VK_LEFT)
+                robot.keyRelease(KeyEvent.VK_D)
+            }
+        })
+    }
+
+    var direction = true
+
     fun handle(event: BoobsEvent) {
         when (event) {
             is Jump -> if (event.state) robot.keyPress(KeyEvent.VK_F) else robot.keyRelease(KeyEvent.VK_F)
             is MoveRight -> if (event.state) {
-                robot.keyPress(KeyEvent.VK_RIGHT)
-                robot.keyPress(KeyEvent.VK_D)
+                if (direction) {
+                    robot.keyPress(KeyEvent.VK_RIGHT)
+                    robot.keyPress(KeyEvent.VK_D)
+                } else {
+                    robot.keyPress(KeyEvent.VK_LEFT)
+                    robot.keyPress(KeyEvent.VK_D)
+                }
             } else {
-                robot.keyRelease(KeyEvent.VK_RIGHT)
-                robot.keyRelease(KeyEvent.VK_D)
+                if (direction) {
+                    robot.keyRelease(KeyEvent.VK_RIGHT)
+                    robot.keyRelease(KeyEvent.VK_D)
+                } else {
+                    robot.keyRelease(KeyEvent.VK_LEFT)
+                    robot.keyRelease(KeyEvent.VK_D)
+                }
+            }
+            is SwipeEvent -> {
+                direction = !direction
             }
         }
     }
+
 }
