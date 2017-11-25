@@ -1,0 +1,26 @@
+buildscript {
+    ext {
+        kotlinVersion = "1.1.60"
+    }
+
+    repositories {
+        jcenter()
+    }
+
+    dependencies {
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
+    }
+}
+
+apply plugin: "kotlin"
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+    compile("org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion")
+    compile files("libs/LeapJava.jar")
+}
+
+kotlin.experimental.coroutines "enable"
