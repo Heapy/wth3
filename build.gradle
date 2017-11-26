@@ -13,14 +13,16 @@ buildscript {
 }
 
 apply plugin: "kotlin"
+apply plugin: "application"
 
 repositories {
     jcenter()
 }
 
+mainClassName = "by.heap.wth3.App"
+applicationDefaultJvmArgs = ["-Djava.library.path=$project.rootDir/native/linux"]
+
 dependencies {
     compile("org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion")
     compile files("libs/LeapJava.jar")
 }
-
-kotlin.experimental.coroutines "enable"
