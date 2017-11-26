@@ -15,6 +15,7 @@ object App {
             "mario" -> Mario.main(arrayOf())
             "chrome" -> Chrome.main(arrayOf())
             "ninja" -> Ninja.main(arrayOf())
+            else -> Ninja .main(arrayOf())
         }
     }
 }
@@ -25,7 +26,15 @@ object Mario {
         val controller = Controller()
         val boobsListeners = BoobsListener(
             EventHandler(
-                Robot()
+                Robot().also { robot ->
+                    Runtime.getRuntime().addShutdownHook(Thread {
+                        println("Shutdown")
+                        robot.keyRelease(KeyEvent.VK_RIGHT)
+                        robot.keyRelease(KeyEvent.VK_LEFT)
+                        robot.keyRelease(KeyEvent.VK_D)
+                        robot.keyRelease(KeyEvent.VK_SPACE)
+                    })
+                }
             )
         )
         controller.addListener(boobsListeners)
@@ -124,16 +133,6 @@ class Space(val state: Boolean) : BoobsEvent() {
 class EventHandler(
     private val robot: Robot
 ) {
-
-    init {
-        Runtime.getRuntime().addShutdownHook(Thread {
-            println("Shutdown")
-            robot.keyRelease(KeyEvent.VK_RIGHT)
-            robot.keyRelease(KeyEvent.VK_LEFT)
-            robot.keyRelease(KeyEvent.VK_D)
-            robot.keyRelease(KeyEvent.VK_SPACE)
-        })
-    }
 
     fun handle(event: BoobsEvent) {
         when (event) {
